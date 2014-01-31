@@ -1,0 +1,45 @@
+Port 22
+Protocol 2
+HostKey /etc/keys/ssh_public_host_rsa_key
+HostKey /etc/keys/ssh_public_host_dsa_key
+UsePrivilegeSeparation yes
+
+KeyRegenerationInterval 3600
+ServerKeyBits 768
+
+SyslogFacility AUTH
+LogLevel INFO
+
+LoginGraceTime 120
+TCPKeepAlive yes
+StrictModes yes
+
+RSAAuthentication no
+PubkeyAuthentication no
+IgnoreRhosts yes
+RhostsRSAAuthentication no
+HostbasedAuthentication no
+
+# Password options
+PermitEmptyPasswords yes
+ChallengeResponseAuthentication no
+PasswordAuthentication yes
+UsePAM yes
+
+# Only allow CTF users to log in
+AllowGroups ctf
+
+# Other security options
+PermitRootLogin no
+X11Forwarding no
+AllowTcpForwarding no
+
+# Printing options
+PrintMotd no
+PrintLastLog no
+
+# Allow client to pass locale environment variables
+AcceptEnv LANG LC_*
+
+# DNS is silly
+UseDNS no

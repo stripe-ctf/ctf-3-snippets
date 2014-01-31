@@ -1,0 +1,48 @@
+#!/bin/sh
+
+nameserver=$(grep nameserver /etc/resolv.conf | cut -f 2 -d ' ')
+
+# clear out everything --yolo
+iptables -F
+iptables -X
+
+iptables -N DOCKERFWD
+iptables -N DOCKERLOGREJECT
+
+# Jump to DOCKERFWD if it's from the docker0 interface
+iptables -I FORWARD -i docker0 -j DOCKERFWD
+
+# Jump to DOCKERLOGREJECT if it's from the docker0 interface
+iptables -I INPUT -i docker0 -j DOCKERLOGREJECT
+
+## DOCKERFWD stuff
+
+# Allow UDP port 53 (dns)
+iptables -p udp -A DOCKERFWD -d $nameserver --dport 53 -j ACCEPT
+iptables -p tcp -A DOCKERFWD -d $nameserver --dport 53 -j ACCEPT
+
+# EC2 hosts, localhost, other containers (this is not needed, as ICC
+# is off), EC2 metadata
+iptables -A DOCKERFWD \
+  -d 10.0.0.0/8,127.0.0.0/8,172.16.0.0/12,169.254.169.254 \
+  -j DOCKERLOGREJECT
+
+# ICMP is nice
+iptables -p icmp -A DOCKERFWD -j ACCEPT
+
+# Allow TCP port 22, 80, 443 to anywhere else
+iptables -p tcp -A DOCKERFWD --dport 22 -j ACCEPT
+iptables -p tcp -A DOCKERFWD --dport 80 -j ACCEPT
+iptables -p tcp -A DOCKERFWD --dport 443 -j ACCEPT
+
+iptables -p tcp -A DOCKERFWD -j DOCKERLOGREJECT
+
+## DOCKERLOGREJECT stuff
+
+iptables -A DOCKERLOGREJECT -p tcp -m limit --limit 5/min \
+  -j LOG --log-prefix "Denied TCP: " --log-level 7
+iptables -A DOCKERLOGREJECT -p udp -m limit --limit 5/min \
+  -j LOG --log-prefix "Denied UDP: " --log-level 7
+iptables -A DOCKERLOGREJECT -p icmp -m limit --limit 5/min \
+  -j LOG --log-prefix "Denied ICMP: " --log-level 7
+iptables -A DOCKERLOGREJECT -j REJECT
