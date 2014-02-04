@@ -1,3 +1,5 @@
+# This was the SSH config used for our public-facing SSHD for ctf-3.
+
 Port 22
 Protocol 2
 HostKey /etc/keys/ssh_public_host_rsa_key
